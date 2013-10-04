@@ -1,0 +1,128 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+  <!-- EF Runtime content -->
+  <edmx:Runtime>
+    <!-- SSDL content -->
+    <edmx:StorageModels>
+    <Schema Namespace="SimpleSFTPSyncModel.Store" Alias="Self" Provider="System.Data.SqlServerCe.4.0" ProviderManifestToken="4.0" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+        <EntityContainer Name="SimpleSFTPSyncModelStoreContainer">
+          <EntitySet Name="Connection" EntityType="SimpleSFTPSyncModel.Store.Connection" store:Type="Tables" />
+          <EntitySet Name="File" EntityType="SimpleSFTPSyncModel.Store.File" store:Type="Tables" />
+        </EntityContainer>
+        <EntityType Name="Connection">
+          <Key>
+            <PropertyRef Name="ConnectionID" />
+          </Key>
+          <Property Name="ConnectionID" Type="int" Nullable="false" StoreGeneratedPattern="Identity" />
+          <Property Name="Name" Type="nvarchar" Nullable="false" MaxLength="100" />
+          <Property Name="Hostname" Type="nvarchar" Nullable="false" MaxLength="100" />
+          <Property Name="Port" Type="int" Nullable="false" />
+          <Property Name="Username" Type="nvarchar" Nullable="false" MaxLength="100" />
+          <Property Name="Password" Type="nvarchar" Nullable="false" MaxLength="100" />
+          <Property Name="SshHostKeyFingerprint" Type="nvarchar" Nullable="false" MaxLength="100" />
+          <Property Name="RemotePath" Type="nvarchar" Nullable="false" MaxLength="2048" />
+          <Property Name="LocalPath" Type="nvarchar" Nullable="false" MaxLength="2048" />
+        </EntityType>
+        <EntityType Name="File">
+          <Key>
+            <PropertyRef Name="FileID" />
+          </Key>
+          <Property Name="FileID" Type="int" Nullable="false" StoreGeneratedPattern="Identity" />
+          <Property Name="ConnectionID" Type="int" Nullable="false" />
+          <Property Name="RemotePath" Type="nvarchar" Nullable="false" MaxLength="2048" />
+          <Property Name="Length" Type="bigint" Nullable="false" />
+          <Property Name="DateDiscovered" Type="datetime" Nullable="false" />
+          <Property Name="DateDownloaded" Type="datetime" />
+          <Property Name="RemoteDateModified" Type="datetime" Nullable="false" />
+        </EntityType>
+      </Schema></edmx:StorageModels>
+    <!-- CSDL content -->
+    <edmx:ConceptualModels>
+      <Schema Namespace="SimpleSFTPSyncModel" Alias="Self" p1:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:p1="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
+        <EntityContainer Name="SimpleSFTPSyncEntities" p1:LazyLoadingEnabled="true">
+          <EntitySet Name="Connections" EntityType="SimpleSFTPSyncModel.Connection" />
+          <EntitySet Name="Files" EntityType="SimpleSFTPSyncModel.File" />
+        </EntityContainer>
+        <EntityType Name="Connection">
+          <Key>
+            <PropertyRef Name="ConnectionID" />
+          </Key>
+          <Property Name="ConnectionID" Type="Int32" Nullable="false" p1:StoreGeneratedPattern="Identity" />
+          <Property Name="Name" Type="String" MaxLength="100" Unicode="true" FixedLength="false" Nullable="false" />
+          <Property Name="Hostname" Type="String" MaxLength="100" Unicode="true" FixedLength="false" Nullable="false" />
+          <Property Name="Port" Type="Int32" Nullable="false" />
+          <Property Name="Username" Type="String" MaxLength="100" Unicode="true" FixedLength="false" Nullable="false" />
+          <Property Name="Password" Type="String" MaxLength="100" Unicode="true" FixedLength="false" Nullable="false" />
+          <Property Type="String" Name="SshHostKeyFingerprint" Nullable="false" MaxLength="100" FixedLength="false" Unicode="true" />
+          <Property Type="String" Name="RemotePath" Nullable="false" MaxLength="2048" FixedLength="false" Unicode="true" />
+          <Property Type="String" Name="LocalPath" Nullable="false" MaxLength="2048" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityType Name="File">
+          <Key>
+            <PropertyRef Name="FileID" />
+          </Key>
+          <Property Type="Int32" Name="FileID" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Type="Int32" Name="ConnectionID" Nullable="false" />
+          <Property Type="String" Name="RemotePath" Nullable="false" MaxLength="2048" FixedLength="false" Unicode="true" />
+          <Property Type="Int64" Name="Length" Nullable="false" />
+          <Property Type="DateTime" Name="DateDiscovered" Nullable="false" Precision="3" />
+          <Property Type="DateTime" Name="DateDownloaded" Precision="3" />
+          <Property Type="DateTime" Name="RemoteDateModified" Nullable="false" Precision="3" />
+        </EntityType>
+      </Schema>
+    </edmx:ConceptualModels>
+    <!-- C-S mapping content -->
+    <edmx:Mappings>
+      <Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2009/11/mapping/cs">
+        <EntityContainerMapping StorageEntityContainer="SimpleSFTPSyncModelStoreContainer" CdmEntityContainer="SimpleSFTPSyncEntities">
+          <EntitySetMapping Name="Connections">
+            <EntityTypeMapping TypeName="SimpleSFTPSyncModel.Connection">
+              <MappingFragment StoreEntitySet="Connection">
+                <ScalarProperty Name="LocalPath" ColumnName="LocalPath" />
+                <ScalarProperty Name="RemotePath" ColumnName="RemotePath" />
+                <ScalarProperty Name="SshHostKeyFingerprint" ColumnName="SshHostKeyFingerprint" />
+                <ScalarProperty Name="ConnectionID" ColumnName="ConnectionID" />
+                <ScalarProperty Name="Name" ColumnName="Name" />
+                <ScalarProperty Name="Hostname" ColumnName="Hostname" />
+                <ScalarProperty Name="Port" ColumnName="Port" />
+                <ScalarProperty Name="Username" ColumnName="Username" />
+                <ScalarProperty Name="Password" ColumnName="Password" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Files">
+            <EntityTypeMapping TypeName="SimpleSFTPSyncModel.File">
+              <MappingFragment StoreEntitySet="File">
+                <ScalarProperty Name="RemoteDateModified" ColumnName="RemoteDateModified" />
+                <ScalarProperty Name="DateDownloaded" ColumnName="DateDownloaded" />
+                <ScalarProperty Name="DateDiscovered" ColumnName="DateDiscovered" />
+                <ScalarProperty Name="Length" ColumnName="Length" />
+                <ScalarProperty Name="RemotePath" ColumnName="RemotePath" />
+                <ScalarProperty Name="ConnectionID" ColumnName="ConnectionID" />
+                <ScalarProperty Name="FileID" ColumnName="FileID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+        </EntityContainerMapping>
+      </Mapping>
+    </edmx:Mappings>
+  </edmx:Runtime>
+  <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <Connection>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="MetadataArtifactProcessing" Value="EmbedInOutputAssembly" />
+      </DesignerInfoPropertySet>
+    </Connection>
+    <Options>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="ValidateOnBuild" Value="true" />
+        <DesignerProperty Name="EnablePluralization" Value="True" />
+        <DesignerProperty Name="IncludeForeignKeysInModel" Value="True" />
+        <DesignerProperty Name="CodeGenerationStrategy" Value="None" />
+      </DesignerInfoPropertySet>
+    </Options>
+    <!-- Diagram content (shape and connector positions) -->
+    <Diagrams></Diagrams>
+  </Designer>
+</edmx:Edmx>

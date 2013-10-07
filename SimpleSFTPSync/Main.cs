@@ -70,7 +70,7 @@ namespace SimpleSFTPSync
                         // Connect
                         checksession.Open(sessionOptions);
                         Ui("Log", "Checking " + checkconnection.Name);
-                        foundFiles = await ListFilesRecursive(checksession, 1, "/home/torrents", "");
+                        foundFiles = await ListFilesRecursive(checksession, checkconnection.ConnectionID, checkconnection.RemotePath, "");
                     }
                     Ui("Status",checkconnection.Name + " - " + foundFiles + " files found");
                 }
@@ -87,6 +87,7 @@ namespace SimpleSFTPSync
             //Download
             foreach (var connection in _db.Connections.OrderBy(c => c.ConnectionID))
             {
+                Ui("Log", "Downloading from " + connection.Name);
                 Ui("Status","Connecting to " + connection.Name);
                 Ui("Form","SimpleSFTPSync - Downloading From " + connection.Name);
                 SessionOptions sessionOptions = new SessionOptions

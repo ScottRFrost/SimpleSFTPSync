@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -36,7 +37,9 @@ namespace SimpleSFTPSync
         /// <param name="e"></param>
         private void Main_Shown(object sender, EventArgs e)
         {
+            Ui("Form", "SimpleSFTPSync - Starting Up...");
             Application.DoEvents();
+            Ui("Form", "SimpleSFTPSync - Beginning Main Loop...");
             Task.Run(() => MainLoop());
         }
 
@@ -48,6 +51,7 @@ namespace SimpleSFTPSync
         {
             var filesDownloaded = 0;
             //Update
+            Ui("Status", "Found " + _db.Connections.Count() + " connections");
             foreach (var checkconnection in _db.Connections.OrderBy(c => c.ConnectionID))
             {
                 try
@@ -55,7 +59,7 @@ namespace SimpleSFTPSync
                     // Setup session options
                     Ui("Status","Connecting to " + checkconnection.Name);
                     Ui("Form","SimpleSFTPSync - Checking " + checkconnection.Name);
-                    SessionOptions sessionOptions = new SessionOptions
+                    var sessionOptions = new SessionOptions
                     {
                         Protocol = Protocol.Sftp,
                         HostName = checkconnection.Hostname,
@@ -90,7 +94,7 @@ namespace SimpleSFTPSync
                 Ui("Log", "Downloading from " + connection.Name);
                 Ui("Status","Connecting to " + connection.Name);
                 Ui("Form","SimpleSFTPSync - Downloading From " + connection.Name);
-                SessionOptions sessionOptions = new SessionOptions
+                var sessionOptions = new SessionOptions
                 {
                     Protocol = Protocol.Sftp,
                     HostName = connection.Hostname,
@@ -110,7 +114,7 @@ namespace SimpleSFTPSync
                         try
                         {
                             var localPath = (connection.LocalPath + file.RemotePath).Replace("/", "\\").Replace("\\\\", "\\").Replace("\\\\", "\\");
-                            var localDirectory = localPath.Substring(0, localPath.LastIndexOf("\\"));
+                            var localDirectory = localPath.Substring(0, localPath.LastIndexOf("\\", StringComparison.Ordinal));
                             if (System.IO.File.Exists(localPath))
                             {
                                 var localFile = new FileInfo(localPath);
@@ -233,7 +237,7 @@ namespace SimpleSFTPSync
         private void SessionFileTransferProgress(object sender, FileTransferProgressEventArgs e)
         {
             Ui("Status","Downloading " + e.FileName + " at " + Convert.ToInt32(e.CPS / 1024) + " K/sec " + (e.OverallProgress * 100) + "%");
-            Ui("Progress",Convert.ToInt32(e.OverallProgress*100).ToString());
+            Ui("Progress",Convert.ToInt32(e.OverallProgress*100).ToString(CultureInfo.InvariantCulture));
         }
 
         /// <summary>

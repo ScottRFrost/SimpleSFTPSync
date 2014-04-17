@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
@@ -50,6 +52,8 @@ namespace SimpleSFTPSync
         private async Task<int> MainLoop()
         {
             var filesDownloaded = 0;
+            var rars = new List<string>();
+
             //Update
             Ui("Status", "Found " + _db.Connections.Count() + " connections");
             foreach (var checkconnection in _db.Connections.OrderBy(c => c.ConnectionID))
@@ -58,7 +62,7 @@ namespace SimpleSFTPSync
                 {
                     // Setup session options
                     Ui("Status","Connecting to " + checkconnection.Name);
-                    Ui("Form","SimpleSFTPSync - Checking " + checkconnection.Name);
+                    Ui("Form","SimpleSFTPSync - Checking " + checkconnection.Name + " for new files");
                     var sessionOptions = new SessionOptions
                     {
                         Protocol = Protocol.Sftp,
@@ -73,7 +77,7 @@ namespace SimpleSFTPSync
                     {
                         // Connect
                         checksession.Open(sessionOptions);
-                        Ui("Log", "Checking " + checkconnection.Name);
+                        Ui("Log", "Checking " + checkconnection.Name + " for new files");
                         foundFiles = await ListFilesRecursive(checksession, checkconnection.ConnectionID, checkconnection.RemotePath, "");
                     }
                     Ui("Status",checkconnection.Name + " - " + foundFiles + " files found");
@@ -144,6 +148,11 @@ namespace SimpleSFTPSync
                                     file.DateDownloaded = DateTime.Now;
                                     _db.SaveChanges();
                                     filesDownloaded++;
+                                    if (localPath.EndsWith(".part1.rar") || !localPath.Contains(".part") && localPath.EndsWith(".rar"))
+                                    {
+                                        rars.Add(localPath);
+                                        Ui("Log", connection.Name + " Added " + localPath + " to auto-unrar queue");
+                                    }
                                 }
                                 else
                                 {
@@ -169,7 +178,19 @@ namespace SimpleSFTPSync
                 }
             }
             Ui("Status",String.Empty);
-            Ui("Form","SimpleSFTPSync - " + filesDownloaded + " files downloaded.  All jobs complete.  Closing in 60 seconds...");
+            Ui("Form","SimpleSFTPSync - " + filesDownloaded + " files downloaded.");
+
+            //Unrar
+            foreach (var rar in rars)
+            {
+                Ui("Form", "SimpleSFTPSync - Unraring " + rar);
+                var process = Process.Start(new ProcessStartInfo("UnRAR.exe") {Arguments = "x -o- " + rar}); //x = extract, -o- = Don't overwrite or prompt to overwrite
+                if (process == null) continue;
+                process.WaitForExit();
+                Ui("Log", "Unrared " + rar);
+            }
+
+            Ui("Form", "SimpleSFTPSync - " + filesDownloaded + " files downloaded.  All jobs complete.  Closing in 60 seconds...");
             Ui("Timer", String.Empty);
             return filesDownloaded;
         }

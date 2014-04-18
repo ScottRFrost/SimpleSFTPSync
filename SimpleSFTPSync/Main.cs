@@ -98,6 +98,7 @@ namespace SimpleSFTPSync
                 Ui("Log", "Downloading from " + connection.Name);
                 Ui("Status","Connecting to " + connection.Name);
                 Ui("Form","SimpleSFTPSync - Downloading From " + connection.Name);
+                Application.DoEvents();
                 var sessionOptions = new SessionOptions
                 {
                     Protocol = Protocol.Sftp,
@@ -179,12 +180,18 @@ namespace SimpleSFTPSync
             }
             Ui("Status",String.Empty);
             Ui("Form","SimpleSFTPSync - " + filesDownloaded + " files downloaded.");
+            Application.DoEvents();
 
             //Unrar
             foreach (var rar in rars)
             {
+                var unrarFolder = rar.Substring(0, rar.LastIndexOf("\\", StringComparison.Ordinal) + 1) + "_unrar";
+                if (!Directory.Exists(unrarFolder))
+                {
+                    Directory.CreateDirectory(unrarFolder);
+                }
                 Ui("Form", "SimpleSFTPSync - Unraring " + rar);
-                var process = Process.Start(new ProcessStartInfo("UnRAR.exe") {Arguments = "x -o- " + rar}); //x = extract, -o- = Don't overwrite or prompt to overwrite
+                var process = Process.Start(new ProcessStartInfo("UnRAR.exe") {Arguments = "x -o- \"" + rar + "\" \"" + unrarFolder + "\""}); //x = extract, -o- = Don't overwrite or prompt to overwrite
                 if (process == null) continue;
                 process.WaitForExit();
                 Ui("Log", "Unrared " + rar);

@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
@@ -53,6 +55,7 @@ namespace SimpleSFTPSync
         {
             var filesDownloaded = 0;
             var rars = new List<string>();
+            var mkvs = new List<string>();
 
             //Update
             Ui("Status", "Found " + _db.Connections.Count() + " connections");
@@ -154,6 +157,10 @@ namespace SimpleSFTPSync
                                         rars.Add(localPath);
                                         Ui("Log", connection.Name + " Added " + localPath + " to auto-unrar queue");
                                     }
+                                    else if (localPath.EndsWith(".mkv"))
+                                    {
+                                        mkvs.Add(localPath);
+                                    }
                                 }
                                 else
                                 {
@@ -195,6 +202,47 @@ namespace SimpleSFTPSync
                 if (process == null) continue;
                 process.WaitForExit();
                 Ui("Log", "Unrared " + rar);
+                mkvs.AddRange(Directory.GetFiles(unrarFolder, "*.mkv"));
+            }
+            Application.DoEvents();
+
+            //MKV move & rename
+            foreach (var mkv in mkvs)
+            {
+                if (mkv.Contains("Sample"))
+                {
+                    continue;
+                }
+                var textInfo = new CultureInfo("en-US", false).TextInfo;
+                var filename = textInfo.ToTitleCase(mkv.Substring(mkv.LastIndexOf("\\", StringComparison.Ordinal) + 1).ToLowerInvariant().Replace(".", " ").Replace(" mkv", ".mkv")
+                    .Replace("1080p","").Replace("720p","").Replace("x264","").Replace("5.1",""));
+
+                //Find the last number (Hopefully the TV episode number or movie year) and truncate everything after that
+                var numbers = Regex.Split(filename, @"\D+");
+                if (numbers.Any())
+                {
+                    var lastNumber = numbers[numbers.Count() - 1];
+                    filename = filename.Substring(0,filename.LastIndexOf(lastNumber, StringComparison.Ordinal) + lastNumber.Length).Trim();
+                }
+
+                //Determine if TV or Movie
+                if (mkv.Contains("HDTV") || mkv.Contains("WEBRIP"))
+                {
+                    //Usually 'Show Name s##e##' followed by garbage
+                    System.IO.File.Move(mkv, ConfigurationManager.AppSettings["TVFolder"] + '\\' + filename);
+                    Ui("Log", "Moved TV " + mkv + " to " + ConfigurationManager.AppSettings["TVFolder"] + '\\' + filename);
+                }
+                else
+                {
+                    //Usually 'Movie Name yyyy' followed by garbage
+                    int year;
+                    if (int.TryParse(filename.Substring(filename.Length - 5,4), out year))
+                    {
+                        filename = filename.Replace(year.ToString(CultureInfo.InvariantCulture), "(" + year + ")");
+                    }
+                    System.IO.File.Move(mkv, ConfigurationManager.AppSettings["MovieFolder"] + '\\' + filename);
+                    Ui("Log", "Moved Movie " + mkv + " to " + ConfigurationManager.AppSettings["MovieFolder"] + '\\' + filename);
+                }
             }
 
             Ui("Form", "SimpleSFTPSync - " + filesDownloaded + " files downloaded.  All jobs complete.  Closing in 60 seconds...");

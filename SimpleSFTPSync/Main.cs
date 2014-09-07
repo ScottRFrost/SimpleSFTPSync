@@ -179,7 +179,7 @@ namespace SimpleSFTPSync
                             }
                             catch (Exception ex)
                             {
-                                Ui("Log", connection.Name + " ERROR - " + ex);
+                                Ui("Error", "Downloading " + file + " - " + ex);
                             }
                             finally
                             {

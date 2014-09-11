@@ -237,7 +237,8 @@ namespace SimpleSFTPSync
                     Ui("Form", "SimpleSFTPSync - Moving " + mkv);
                     var filename = textInfo.ToTitleCase(mkv.Substring(mkv.LastIndexOf("\\", StringComparison.Ordinal) + 1).ToLowerInvariant()
                         .Replace("5.1", "").Replace("7.1", "").Replace("2.0", "").Replace(".", " ").Replace(" mkv", ".mkv")
-                        .Replace("1080p", "").Replace("720p", "").Replace("x264", "").Replace("blurayrip", "").Replace("bluray", "").Replace("dvdrip", "")
+                        .Replace("1080p", "").Replace("720p", "").Replace("x264", "").Replace("h264","").Replace("ac3","").Replace("dts","")
+                        .Replace("blurayrip", "").Replace("bluray", "").Replace("dvdrip", "")
                         .Replace("  ", " ").Replace("  ", " ").Replace(" .mkv", ".mkv")
                         ).Replace(".Mkv", ".mkv");
 
@@ -250,20 +251,23 @@ namespace SimpleSFTPSync
                     }
 
                     //Determine if TV or Movie
-                    if (mkv.Contains("HDTV") || mkv.Contains("WEBRIP"))
+                    if (mkv.Contains("Hdtv") || mkv.Contains("Webrip"))
                     {
                         //Usually 'Show Name s##e##' followed by garbage
-                        filename = filename.Replace("HDTV", "").Replace("WEBRIP", "");
+                        filename = filename.Replace("Hdtv", "").Replace("Webrip", "");
                         System.IO.File.Move(mkv, ConfigurationManager.AppSettings["TVFolder"] + '\\' + filename);
                         Ui("Log", "Moved TV " + mkv + " to " + ConfigurationManager.AppSettings["TVFolder"] + '\\' + filename);
                     }
                     else
                     {
                         //Usually 'Movie Name yyyy' followed by garbage
-                        int year;
-                        if (int.TryParse(filename.Substring(filename.Length - 8, 4), out year))
+                        for (var year = 1960; year < 2030; year++)
                         {
-                            filename = filename.Replace(year.ToString(CultureInfo.InvariantCulture), "(" + year + ")");
+                            var idx = filename.IndexOf(year.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal);
+                            if (idx > 0)
+                            {
+                                filename = filename.Substring(0, idx) + "(" + year + ").mkv";
+                            }    
                         }
                         System.IO.File.Move(mkv, ConfigurationManager.AppSettings["MovieFolder"] + '\\' + filename);
                         Ui("Log", "Moved Movie " + mkv + " to " + ConfigurationManager.AppSettings["MovieFolder"] + '\\' + filename);

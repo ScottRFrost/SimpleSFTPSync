@@ -251,10 +251,27 @@ namespace SimpleSFTPSync
                     }
 
                     //Determine if TV or Movie
-                    if (mkv.Contains("Hdtv") || mkv.Contains("Webrip"))
+                    if (mkv.ToLower().Contains("hdtv") || mkv.ToLower().Contains("webrip"))
                     {
                         //Usually 'Show Name s##e##' followed by garbage
-                        filename = filename.Replace("Hdtv", "").Replace("Webrip", "");
+                        filename = filename.Replace("HDTV", "").Replace("Webrip", "");
+                        var found = false;
+                        for (var season = 1; season < 36; season++)
+                        {
+                            for (var episode = 1; episode < 36; episode++)
+                            {
+                                var episodeNumber = "S" + (season < 10 ? "0" + season : season.ToString()) + "E" + (episode < 10 ? "0" + episode : episode.ToString());
+                                var idx = filename.ToUpper().IndexOf(episodeNumber, StringComparison.Ordinal);
+                                if (idx > 0)
+                                {
+                                    filename = filename.Substring(0, idx) + episodeNumber + ".mkv";
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (found) break;
+                        }
+
                         System.IO.File.Move(mkv, ConfigurationManager.AppSettings["TVFolder"] + '\\' + filename);
                         Ui("Log", "Moved TV " + mkv + " to " + ConfigurationManager.AppSettings["TVFolder"] + '\\' + filename);
                     }
@@ -264,10 +281,9 @@ namespace SimpleSFTPSync
                         for (var year = 1960; year < 2030; year++)
                         {
                             var idx = filename.IndexOf(year.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal);
-                            if (idx > 0)
-                            {
-                                filename = filename.Substring(0, idx) + "(" + year + ").mkv";
-                            }    
+                            if (idx <= 0) continue;
+                            filename = filename.Substring(0, idx) + "(" + year + ").mkv";
+                            break;
                         }
                         System.IO.File.Move(mkv, ConfigurationManager.AppSettings["MovieFolder"] + '\\' + filename);
                         Ui("Log", "Moved Movie " + mkv + " to " + ConfigurationManager.AppSettings["MovieFolder"] + '\\' + filename);
@@ -367,7 +383,7 @@ namespace SimpleSFTPSync
         /// <param name="value"></param>
         private void Ui(string item, string value)
         {
-            if (item != "Progress")
+            if (item != "Progress" && !(item == "Status" && value.StartsWith("Downloading ")))
             {
                 var streamWriter = new StreamWriter(DateTime.Now.ToString("MM-dd-yyyy") + ".log", true);
                 streamWriter.WriteLine(DateTime.Now.ToString("HH:mm:ss.ff") + " " + item + " " + value);

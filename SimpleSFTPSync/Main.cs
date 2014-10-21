@@ -45,6 +45,7 @@ namespace SimpleSFTPSync
             Ui("Form", "SimpleSFTPSync - Starting Up...");
             Application.DoEvents();
             Ui("Form", "SimpleSFTPSync - Beginning Main Loop...");
+            //var x = await MainLoop();  //Doing this instead of Task.Run can be helpful for debugging.  Remember to set Main_Shown to async as well.
             Task.Run(() => MainLoop());
         }
 
@@ -54,12 +55,23 @@ namespace SimpleSFTPSync
         /// <returns>Number of files downloaded</returns>
         private async Task<int> MainLoop()
         {
+            Ui("Form", "SimpleSFTPSync - Connecting to DB...");
             var filesDownloaded = 0;
             var rars = new List<string>();
             var mkvs = new List<string>();
 
+            //Connect
+            try
+            {
+                Ui("Status", "Found " + _db.Connections.Count() + " connections");
+            }
+            catch (Exception ex)
+            {
+                Ui("Error","InitialDBConnetion - " + ex);
+                return 0;
+            }
+
             //Update
-            Ui("Status", "Found " + _db.Connections.Count() + " connections");
             foreach (var checkconnection in _db.Connections.OrderBy(c => c.ConnectionID))
             {
                 try
@@ -181,10 +193,6 @@ namespace SimpleSFTPSync
                             {
                                 Ui("Error", "Downloading " + file + " - " + ex);
                             }
-                            finally
-                            {
-                                Ui("Form", "SimpleSFTPSync - Completed " + connection.Name);
-                            }
                         }
                     }
                 }
@@ -192,7 +200,10 @@ namespace SimpleSFTPSync
                 {
                     Ui("Error", "Download - " + connection.Name + " - " + ex);
                 }
-                
+                finally
+                {
+                    Ui("Form", "SimpleSFTPSync - Completed " + connection.Name);
+                }
             }
             Ui("Status",String.Empty);
             Ui("Form","SimpleSFTPSync - " + filesDownloaded + " files downloaded.");
@@ -260,7 +271,7 @@ namespace SimpleSFTPSync
                         {
                             for (var episode = 1; episode < 36; episode++)
                             {
-                                var episodeNumber = "S" + (season < 10 ? "0" + season : season.ToString()) + "E" + (episode < 10 ? "0" + episode : episode.ToString());
+                                var episodeNumber = "S" + (season < 10 ? "0" + season : season.ToString(CultureInfo.InvariantCulture)) + "E" + (episode < 10 ? "0" + episode : episode.ToString(CultureInfo.InvariantCulture));
                                 var idx = filename.ToUpper().IndexOf(episodeNumber, StringComparison.Ordinal);
                                 if (idx > 0)
                                 {

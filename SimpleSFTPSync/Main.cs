@@ -3,23 +3,29 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.IO;
+
 using WinSCP;
 
 namespace SimpleSFTPSync
 {
+    /// <summary>
+    /// The main form
+    /// </summary>
     public partial class Main : Form
     {
         /// <summary>
         /// Entity Framework
         /// </summary>
-        private readonly SimpleSFTPSyncEntities _db = new SimpleSFTPSyncEntities();
+        private readonly SimpleSFTPSyncEntities db = new SimpleSFTPSyncEntities();
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Main"/> class.
+        /// </summary>
         public Main()
         {
             InitializeComponent();
@@ -28,9 +34,13 @@ namespace SimpleSFTPSync
         /// <summary>
         /// Close form after timeout
         /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void Timer_Tick(object sender, EventArgs e)
+        /// <param name="sender">
+        /// The sender.
+        /// </param>
+        /// <param name="e">
+        /// The e.
+        /// </param>
+        private void TimerTick(object sender, EventArgs e)
         {
             Close();
         }
@@ -38,14 +48,18 @@ namespace SimpleSFTPSync
         /// <summary>
         /// Start threaded main process
         /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void Main_Shown(object sender, EventArgs e)
+        /// <param name="sender">
+        /// The sender.
+        /// </param>
+        /// <param name="e">
+        /// The e.
+        /// </param>
+        private void MainShown(object sender, EventArgs e)
         {
             Ui("Form", "SimpleSFTPSync - Starting Up...");
             Application.DoEvents();
             Ui("Form", "SimpleSFTPSync - Beginning Main Loop...");
-            //var x = await MainLoop();  //Doing this instead of Task.Run can be helpful for debugging.  Remember to set Main_Shown to async as well.
+            ////var x = await MainLoop();  //Doing this instead of Task.Run can be helpful for debugging.  Remember to set Main_Shown to async as well.
             Task.Run(() => MainLoop());
         }
 
@@ -60,25 +74,25 @@ namespace SimpleSFTPSync
             var rars = new List<string>();
             var mkvs = new List<string>();
 
-            //Connect
+            // Connect
             try
             {
-                Ui("Status", "Found " + _db.Connections.Count() + " connections");
+                Ui("Status", "Found " + this.db.Connections.Count() + " connections");
             }
             catch (Exception ex)
             {
-                Ui("Error","InitialDBConnetion - " + ex);
+                Ui("Error", "InitialDBConnetion - " + ex);
                 return 0;
             }
 
-            //Update
-            foreach (var checkconnection in _db.Connections.OrderBy(c => c.ConnectionID))
+            // Update
+            foreach (var checkconnection in this.db.Connections.OrderBy(c => c.ConnectionID))
             {
                 try
                 {
                     // Setup session options
-                    Ui("Status","Connecting to " + checkconnection.Name);
-                    Ui("Form","SimpleSFTPSync - Checking " + checkconnection.Name + " for new files");
+                    Ui("Status", "Connecting to " + checkconnection.Name);
+                    Ui("Form", " SimpleSFTPSync - Checking " + checkconnection.Name + " for new files");
                     var sessionOptions = new SessionOptions
                     {
                         Protocol = Protocol.Sftp,
@@ -94,22 +108,22 @@ namespace SimpleSFTPSync
                         // Connect
                         checksession.Open(sessionOptions);
                         Ui("Log", "Checking " + checkconnection.Name + " for new files");
-                        foundFiles = await ListFilesRecursive(checksession, checkconnection.ConnectionID, checkconnection.RemotePath, "");
+                        foundFiles = await ListFilesRecursive(checksession, checkconnection.ConnectionID, checkconnection.RemotePath, string.Empty);
                     }
-                    Ui("Status",checkconnection.Name + " - " + foundFiles + " files found");
+                    Ui("Status", checkconnection.Name + " - " + foundFiles + " files found");
                 }
                 catch (Exception ex)
                 {
-                    Ui("Error","Updating " + checkconnection.Name + " - " + ex);
+                    Ui("Error", "Updating " + checkconnection.Name + " - " + ex);
                 }
                 finally
                 {
-                    Ui("Form","SimpleSFTPSync - Completed " + checkconnection.Name);
+                    Ui("Form", "SimpleSFTPSync - Completed " + checkconnection.Name);
                 }
             }
 
-            //Download
-            foreach (var connection in _db.Connections.OrderBy(c => c.ConnectionID))
+            // Download
+            foreach (var connection in db.Connections.OrderBy(c => c.ConnectionID))
             {
                 try
                 {
@@ -132,7 +146,7 @@ namespace SimpleSFTPSync
                     using (downloadsession)
                     {
                         var connectionId = connection.ConnectionID;
-                        foreach (var file in _db.Files.Where(f => f.DateDownloaded == null && f.ConnectionID == connectionId).OrderBy(f => f.DateDiscovered))
+                        foreach (var file in this.db.Files.Where(f => f.DateDownloaded == null && f.ConnectionID == connectionId).OrderBy(f => f.DateDiscovered))
                         {
                             try
                             {
@@ -145,7 +159,7 @@ namespace SimpleSFTPSync
                                     {
                                         Ui("Log", connection.Name + " " + file.RemotePath + " and " + localPath + " are the same size.  Skipping.");
                                         file.DateDownloaded = DateTime.Now;
-                                        _db.SaveChanges();
+                                        this.db.SaveChanges();
                                         continue;
                                     }
                                     else
@@ -165,14 +179,14 @@ namespace SimpleSFTPSync
                                     {
                                         Ui("Log", connection.Name + " downloaded " + file.RemotePath + " to " + localPath);
                                         file.DateDownloaded = DateTime.Now;
-                                        _db.SaveChanges();
+                                        this.db.SaveChanges();
                                         filesDownloaded++;
-                                        if (localPath.EndsWith(".part1.rar") || !localPath.Contains(".part") && localPath.EndsWith(".rar"))
+                                        if (localPath.EndsWith(".part1.rar", StringComparison.Ordinal) || !localPath.Contains(".part") && localPath.EndsWith(".rar", StringComparison.Ordinal))
                                         {
                                             rars.Add(localPath);
                                             Ui("Log", connection.Name + " Added " + localPath + " to auto-unrar queue");
                                         }
-                                        else if (localPath.EndsWith(".mkv"))
+                                        else if (localPath.EndsWith(".mkv", StringComparison.Ordinal))
                                         {
                                             mkvs.Add(localPath);
                                         }
@@ -186,7 +200,7 @@ namespace SimpleSFTPSync
                                 {
                                     Ui("Log", connection.Name + " downloaded " + file.RemotePath + " no longer exists");
                                     file.DateDownloaded = DateTime.Now;
-                                    _db.SaveChanges();
+                                    this.db.SaveChanges();
                                 }
                             }
                             catch (Exception ex)
@@ -205,11 +219,11 @@ namespace SimpleSFTPSync
                     Ui("Form", "SimpleSFTPSync - Completed " + connection.Name);
                 }
             }
-            Ui("Status",String.Empty);
-            Ui("Form","SimpleSFTPSync - " + filesDownloaded + " files downloaded.");
+            Ui("Status", string.Empty);
+            Ui("Form", "SimpleSFTPSync - " + filesDownloaded + " files downloaded.");
             Application.DoEvents();
 
-            //Unrar
+            // Unrar
             foreach (var rar in rars)
             {
                 try
@@ -220,82 +234,40 @@ namespace SimpleSFTPSync
                         Directory.CreateDirectory(unrarFolder);
                     }
                     Ui("Form", "SimpleSFTPSync - Unraring " + rar);
-                    var process = Process.Start(new ProcessStartInfo("UnRAR.exe") { Arguments = "x -o- \"" + rar + "\" \"" + unrarFolder + "\"" }); //x = extract, -o- = Don't overwrite or prompt to overwrite
-                    if (process == null) continue;
+                    var process = Process.Start(new ProcessStartInfo("UnRAR.exe") { Arguments = "x -o- \"" + rar + "\" \"" + unrarFolder + "\"" }); // x = extract, -o- = Don't overwrite or prompt to overwrite
+                    if (process == null)
+                    {
+                        continue;
+                    }
                     process.WaitForExit();
                     Ui("Log", "Unrared " + rar);
-                    Thread.Sleep(2000); //Wait for unrar.exe to completely clean up
+                    Thread.Sleep(2000); // Wait for unrar.exe to completely clean up
                     mkvs.AddRange(Directory.GetFiles(unrarFolder, "*.mkv"));
                 }
                 catch (Exception ex)
                 {
                     Ui("Error", "UnRar of " + rar + " - " + ex);
                 }
-                
             }
             Application.DoEvents();
 
-            //MKV move & rename
-            var textInfo = new CultureInfo("en-US", false).TextInfo;
-            foreach (var mkv in mkvs)
+            // MKV move & rename
+            foreach (var mkv in mkvs.Where(mkv => !mkv.Contains("Sample")))
             {
-                if (mkv.Contains("Sample"))
-                {
-                    continue;
-                }
                 try
                 {
                     Ui("Form", "SimpleSFTPSync - Moving " + mkv);
-                    var filename = textInfo.ToTitleCase(mkv.Substring(mkv.LastIndexOf("\\", StringComparison.Ordinal) + 1).ToLowerInvariant()
-                        .Replace("5.1", "").Replace("7.1", "").Replace("2.0", "").Replace(".", " ").Replace(" mkv", ".mkv")
-                        .Replace("1080p", "").Replace("720p", "").Replace("x264", "").Replace("h264","").Replace("ac3","").Replace("dts","")
-                        .Replace("blurayrip", "").Replace("bluray", "").Replace("dvdrip", "")
-                        .Replace("  ", " ").Replace("  ", " ").Replace(" .mkv", ".mkv")
-                        ).Replace(".Mkv", ".mkv");
 
-                    //Find the last number (Hopefully the TV episode number or movie year) and truncate everything after that
-                    var numbers = Regex.Split(filename, @"\D+");
-                    if (numbers.Any())
-                    {
-                        var lastNumber = numbers[numbers.Count() - 1];
-                        filename = filename.Substring(0, filename.LastIndexOf(lastNumber, StringComparison.Ordinal) + lastNumber.Length + 1).Trim();
-                    }
-
-                    //Determine if TV or Movie
+                    // Determine if TV or Movie
                     if (mkv.ToLower().Contains("hdtv") || mkv.ToLower().Contains("webrip"))
                     {
-                        //Usually 'Show Name s##e##' followed by garbage
-                        filename = filename.Replace("HDTV", "").Replace("Webrip", "");
-                        var found = false;
-                        for (var season = 1; season < 36; season++)
-                        {
-                            for (var episode = 1; episode < 36; episode++)
-                            {
-                                var episodeNumber = "S" + (season < 10 ? "0" + season : season.ToString(CultureInfo.InvariantCulture)) + "E" + (episode < 10 ? "0" + episode : episode.ToString(CultureInfo.InvariantCulture));
-                                var idx = filename.ToUpper().IndexOf(episodeNumber, StringComparison.Ordinal);
-                                if (idx > 0)
-                                {
-                                    filename = filename.Substring(0, idx) + episodeNumber + ".mkv";
-                                    found = true;
-                                    break;
-                                }
-                            }
-                            if (found) break;
-                        }
-
+                        var filename = Rename.TV(mkv);
                         System.IO.File.Move(mkv, ConfigurationManager.AppSettings["TVFolder"] + '\\' + filename);
                         Ui("Log", "Moved TV " + mkv + " to " + ConfigurationManager.AppSettings["TVFolder"] + '\\' + filename);
                     }
                     else
                     {
-                        //Usually 'Movie Name yyyy' followed by garbage
-                        for (var year = 1960; year < 2030; year++)
-                        {
-                            var idx = filename.IndexOf(year.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal);
-                            if (idx <= 0) continue;
-                            filename = filename.Substring(0, idx) + "(" + year + ").mkv";
-                            break;
-                        }
+                        var filename = Rename.Movie(mkv);
                         System.IO.File.Move(mkv, ConfigurationManager.AppSettings["MovieFolder"] + '\\' + filename);
                         Ui("Log", "Moved Movie " + mkv + " to " + ConfigurationManager.AppSettings["MovieFolder"] + '\\' + filename);
                     }
@@ -304,11 +276,9 @@ namespace SimpleSFTPSync
                 {
                     Ui("Error", "Move of " + mkv + " - " + ex);
                 }
-                
             }
-
             Ui("Form", "SimpleSFTPSync - " + filesDownloaded + " files downloaded.  All jobs complete.  Closing in 60 seconds...");
-            Ui("Timer", String.Empty);
+            Ui("Timer", string.Empty);
             return filesDownloaded;
         }
 
@@ -322,7 +292,7 @@ namespace SimpleSFTPSync
         /// <returns>Number of files found</returns>
         private async Task<int> ListFilesRecursive(Session session, int connectionId, string basePath, string subDirectory)
         {
-            Ui("Status","Checking /" + subDirectory);
+            Ui("Status", "Checking /" + subDirectory);
             var foundFiles = 0;
             var remoteDirectoryInfo = session.ListDirectory(basePath + "/" + subDirectory);
             try
@@ -340,11 +310,11 @@ namespace SimpleSFTPSync
                     else
                     {
                         var file =
-                            _db.Files.FirstOrDefault(f => f.ConnectionID == connectionId && f.RemotePath == filePath);
+                            this.db.Files.FirstOrDefault(f => f.ConnectionID == connectionId && f.RemotePath == filePath);
                         if (file == null)
                         {
                             Ui("Log", "Found New file: " + filePath);
-                            _db.Files.Add(new File
+                            this.db.Files.Add(new File
                             {
                                 ConnectionID = connectionId,
                                 DateDiscovered = DateTime.Now,
@@ -353,7 +323,7 @@ namespace SimpleSFTPSync
                                 RemoteDateModified = fileInfo.LastWriteTime,
                                 RemotePath = filePath
                             });
-                            _db.SaveChanges();
+                            this.db.SaveChanges();
                             foundFiles++;
                         }
                         else if (file.Length != fileInfo.Length || file.RemoteDateModified != fileInfo.LastWriteTime)
@@ -362,7 +332,7 @@ namespace SimpleSFTPSync
                             file.DateDownloaded = null;
                             file.Length = fileInfo.Length;
                             file.RemoteDateModified = fileInfo.LastWriteTime;
-                            _db.SaveChanges();
+                            this.db.SaveChanges();
                             foundFiles++;
                         }
                     }
@@ -371,7 +341,7 @@ namespace SimpleSFTPSync
             }
             catch (Exception ex)
             {
-                Ui("Error","ListFilesRecursive - " + ex);
+                Ui("Error", "ListFilesRecursive - " + ex);
                 return 0;
             }
         }
@@ -379,22 +349,30 @@ namespace SimpleSFTPSync
         /// <summary>
         /// Callback to update progress as file transfers
         /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
+        /// <param name="sender">
+        /// The sender.
+        /// </param>
+        /// <param name="e">
+        /// The e.
+        /// </param>
         private void SessionFileTransferProgress(object sender, FileTransferProgressEventArgs e)
         {
-            Ui("Status","Downloading " + e.FileName + " at " + Convert.ToInt32(e.CPS / 1024) + " K/sec " + (e.OverallProgress * 100) + "%");
-            Ui("Progress",Convert.ToInt32(e.OverallProgress*100).ToString(CultureInfo.InvariantCulture));
+            Ui("Status", "Downloading " + e.FileName + " at " + Convert.ToInt32(e.CPS / 1024) + " K/sec " + (e.OverallProgress * 100) + "%");
+            Ui("Progress", Convert.ToInt32(e.OverallProgress * 100).ToString(CultureInfo.InvariantCulture));
         }
 
         /// <summary>
         /// Class to cleanly allow background threads access to the main UI thread
         /// </summary>
-        /// <param name="item"></param>
-        /// <param name="value"></param>
+        /// <param name="item">
+        /// The item to change.
+        /// </param>
+        /// <param name="value">
+        /// The value to set.
+        /// </param>
         private void Ui(string item, string value)
         {
-            if (item != "Progress" && !(item == "Status" && value.StartsWith("Downloading ")))
+            if (item != "Progress" && !(item == "Status" && value.StartsWith("Downloading ", StringComparison.Ordinal)))
             {
                 var streamWriter = new StreamWriter(DateTime.Now.ToString("MM-dd-yyyy") + ".log", true);
                 streamWriter.WriteLine(DateTime.Now.ToString("HH:mm:ss.ff") + " " + item + " " + value);
@@ -417,10 +395,30 @@ namespace SimpleSFTPSync
                 case "Timer":
                     Invoke(new Action(() => Timer.Enabled = true));
                     break;
+                case "TimerOff":
+                    Invoke(new Action(() => Timer.Enabled = false));
+                    break;
                 case "Progress":
                     Invoke(new Action(() => ProgressBar.Value = Convert.ToInt32(value)));
                     break;
             }
+        }
+
+        /// <summary>
+        /// Load setup page
+        /// </summary>
+        /// <param name="sender">
+        /// The sender.
+        /// </param>
+        /// <param name="e">
+        /// The e.
+        /// </param>
+        private void SetupButtonButtonClick(object sender, EventArgs e)
+        {
+            var s = new Setup();
+            Ui("Form", "SimpleSFTPSync - Setup Opened.  Close app manually when finished.");
+            Ui("TimerOff", string.Empty);
+            s.ShowDialog();
         }
     }
 }

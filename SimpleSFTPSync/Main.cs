@@ -77,7 +77,7 @@ namespace SimpleSFTPSync
             // Connect
             try
             {
-                Ui("Status", "Found " + this.db.Connections.Count() + " connections");
+                Ui("Status", "Found " + db.Connections.Count() + " connections");
             }
             catch (Exception ex)
             {
@@ -86,7 +86,7 @@ namespace SimpleSFTPSync
             }
 
             // Update
-            foreach (var checkconnection in this.db.Connections.OrderBy(c => c.ConnectionID))
+            foreach (var checkconnection in db.Connections.OrderBy(c => c.ConnectionID))
             {
                 try
                 {
@@ -146,7 +146,7 @@ namespace SimpleSFTPSync
                     using (downloadsession)
                     {
                         var connectionId = connection.ConnectionID;
-                        foreach (var file in this.db.Files.Where(f => f.DateDownloaded == null && f.ConnectionID == connectionId).OrderBy(f => f.DateDiscovered))
+                        foreach (var file in db.Files.Where(f => f.DateDownloaded == null && f.ConnectionID == connectionId).OrderBy(f => f.DateDiscovered))
                         {
                             try
                             {
@@ -159,7 +159,7 @@ namespace SimpleSFTPSync
                                     {
                                         Ui("Log", connection.Name + " " + file.RemotePath + " and " + localPath + " are the same size.  Skipping.");
                                         file.DateDownloaded = DateTime.Now;
-                                        this.db.SaveChanges();
+                                        db.SaveChanges();
                                         continue;
                                     }
                                     else
@@ -179,7 +179,7 @@ namespace SimpleSFTPSync
                                     {
                                         Ui("Log", connection.Name + " downloaded " + file.RemotePath + " to " + localPath);
                                         file.DateDownloaded = DateTime.Now;
-                                        this.db.SaveChanges();
+                                        db.SaveChanges();
                                         filesDownloaded++;
                                         if (localPath.EndsWith(".part1.rar", StringComparison.Ordinal) || !localPath.Contains(".part") && localPath.EndsWith(".rar", StringComparison.Ordinal))
                                         {
@@ -200,7 +200,7 @@ namespace SimpleSFTPSync
                                 {
                                     Ui("Log", connection.Name + " downloaded " + file.RemotePath + " no longer exists");
                                     file.DateDownloaded = DateTime.Now;
-                                    this.db.SaveChanges();
+                                    db.SaveChanges();
                                 }
                             }
                             catch (Exception ex)
@@ -259,7 +259,7 @@ namespace SimpleSFTPSync
                     Ui("Form", "SimpleSFTPSync - Moving " + mkv);
 
                     // Determine if TV or Movie
-                    if (mkv.ToLower().Contains("hdtv") || mkv.ToLower().Contains("webrip"))
+                    if (mkv.ToLower().Contains("hdtv") || mkv.ToLower().Contains("webrip") || mkv.ToLower().Contains("web-dl"))
                     {
                         var filename = Rename.TV(mkv);
                         System.IO.File.Move(mkv, ConfigurationManager.AppSettings["TVFolder"] + '\\' + filename);
@@ -310,11 +310,11 @@ namespace SimpleSFTPSync
                     else
                     {
                         var file =
-                            this.db.Files.FirstOrDefault(f => f.ConnectionID == connectionId && f.RemotePath == filePath);
+                            db.Files.FirstOrDefault(f => f.ConnectionID == connectionId && f.RemotePath == filePath);
                         if (file == null)
                         {
                             Ui("Log", "Found New file: " + filePath);
-                            this.db.Files.Add(new File
+                            db.Files.Add(new File
                             {
                                 ConnectionID = connectionId,
                                 DateDiscovered = DateTime.Now,
@@ -323,7 +323,7 @@ namespace SimpleSFTPSync
                                 RemoteDateModified = fileInfo.LastWriteTime,
                                 RemotePath = filePath
                             });
-                            this.db.SaveChanges();
+                            db.SaveChanges();
                             foundFiles++;
                         }
                         else if (file.Length != fileInfo.Length || file.RemoteDateModified != fileInfo.LastWriteTime)
@@ -332,7 +332,7 @@ namespace SimpleSFTPSync
                             file.DateDownloaded = null;
                             file.Length = fileInfo.Length;
                             file.RemoteDateModified = fileInfo.LastWriteTime;
-                            this.db.SaveChanges();
+                            db.SaveChanges();
                             foundFiles++;
                         }
                     }

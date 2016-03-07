@@ -25,7 +25,7 @@ namespace SimpleSFTPSync
                     var idx = filename.ToUpper().IndexOf(episodeNumber, StringComparison.Ordinal);
                     if (idx > 0)
                     {
-                        filename = filename.Substring(0, idx) + episodeNumber + ".mkv";
+                        filename = filename.Substring(0, idx) + "- " + episodeNumber + ".mkv";
                         found = true;
                         break;
                     }
@@ -70,10 +70,10 @@ namespace SimpleSFTPSync
         {
             // Determine if we want to try to operate on the filename itself or the parent folder
             var chunks = filename.Split('\\');
-            if (chunks[chunks.Length - 2].Contains("720p") || chunks[chunks.Length - 2].Contains("1080p"))
+            if (chunks.Length > 1 && (chunks[chunks.Length - 2].Contains("720p") || chunks[chunks.Length - 2].Contains("1080p")))
             {
-                // Use parent
-                filename = chunks[chunks.Length - 2] + ".mkv";
+                // Use parent folder
+                filename = chunks[chunks.Length - 2].ToLowerInvariant() + ".mkv";
             }
             else
             {
@@ -84,7 +84,8 @@ namespace SimpleSFTPSync
             // Strip things we know we don't want
             var textInfo = new CultureInfo("en-US", false).TextInfo;
             filename = textInfo.ToTitleCase(filename.Replace("1080p", string.Empty).Replace("720p", string.Empty).Replace("x264", string.Empty).Replace("h264", string.Empty).Replace("ac3", string.Empty).Replace("dts", string.Empty)
-                .Replace("blurayrip", string.Empty).Replace("bluray", string.Empty).Replace("dvdrip", string.Empty).Replace(".", " ").Replace("  ", " ").Replace("  ", " "));
+                .Replace("blurayrip", string.Empty).Replace("bluray", string.Empty).Replace("dvdrip", string.Empty).Replace(".", " ").Replace("  ", " ").Replace("  ", " "))
+                .Replace(" Mkv",".mkv");
             return filename;
         }
     }

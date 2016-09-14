@@ -1,3 +1,6 @@
+NOTE - This project has been superseded by the .NET Core version [SimpleSFTPSyncCore](https://github.com/ScottRFrost/SimpleSFTPSyncCore) and probably won't receive further updates (from me, at least)
+
+
 SimpleSFTPSync
 ==============
 
